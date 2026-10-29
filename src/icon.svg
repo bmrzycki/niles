@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" fill="#012F56"/>
+  <polygon points="512,168 196,470 828,470" fill="#FFFFFF"/>
+  <rect x="268" y="446" width="488" height="392" fill="#FFFFFF"/>
+  <g fill="#012F56">
+    <rect x="500" y="468" width="32" height="192"/>
+    <path d="M500 468
+             L532 468
+             Q720 510 596 628
+             Q668 528 500 506
+             Z"/>
+    <ellipse cx="478" cy="668" rx="86" ry="60" transform="rotate(-22 478 668)"/>
+  </g>
+</svg>

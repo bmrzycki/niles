@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Niles">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icon.png">
+<link rel="icon" href="/icon.png" type="image/png">
+<title>Niles</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f2f2f7;
+    --fg: #1c1c1e;
+    --muted: #636366;
+    --fill: #ffffff;
+    --on: #007aff;
+    --on-fg: #ffffff;
+    --danger: #ff3b30;
+    --danger-fg: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #000000;
+      --fg: #f2f2f7;
+      --muted: #8e8e93;
+      --fill: #1c1c1e;
+      --on: #0a84ff;
+      --on-fg: #ffffff;
+      --danger: #ff453a;
+      --danger-fg: #ffffff;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    position: fixed;
+    inset: 0;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding:
+      calc(8px + env(safe-area-inset-top))
+      calc(10px + env(safe-area-inset-right))
+      calc(8px + env(safe-area-inset-bottom))
+      calc(10px + env(safe-area-inset-left));
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  button {
+    font: inherit;
+    color: var(--fg);
+    background: var(--fill);
+    border: 0;
+    border-radius: 12px;
+    min-height: 44px;
+    min-width: 0;
+    padding: 6px 4px;
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+  }
+  button:active { transform: scale(0.98); }
+  .tabs {
+    display: flex;
+    gap: 4px;
+  }
+  .tab {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    min-height: 48px;
+    padding: 4px 1px;
+  }
+  .name {
+    font-size: clamp(11px, 3.1vw, 15px);
+    font-weight: 650;
+    line-height: 1.1;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .floor {
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    line-height: 1.1;
+  }
+  .tab.on, .input.on {
+    background: var(--on);
+    color: var(--on-fg);
+  }
+  .tab.on .floor { color: var(--on-fg); opacity: 0.8; }
+  .debug {
+    margin: 0;
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .inputs, .volume, .bar {
+    display: flex;
+    gap: 8px;
+  }
+  .input, .volume button, .bar button {
+    flex: 1 1 0;
+    font-weight: 650;
+    white-space: nowrap;
+  }
+  .input {
+    font-size: clamp(14px, 3.8vw, 18px);
+  }
+  .volume {
+    flex: 1;
+    min-height: 0;
+    align-items: stretch;
+  }
+  .volume button {
+    font-size: clamp(20px, 6vw, 28px);
+  }
+  .bar button {
+    min-height: 48px;
+    font-size: clamp(16px, 4.2vw, 20px);
+  }
+  #all-off {
+    margin-left: 8px;
+    background: var(--danger);
+    color: var(--danger-fg);
+  }
+</style>
+</head>
+<body>
+<nav class="tabs">
+<!--TABS-->
+</nav>
+<!--DEBUG-->
+<div class="inputs">
+<!--INPUTS-->
+</div>
+<div class="volume">
+  <button type="button" id="vol-down">Vol −</button>
+  <button type="button" id="vol-up">Vol +</button>
+  <button type="button" id="mute">Mute</button>
+</div>
+<footer class="bar">
+  <button type="button" id="off">Off</button>
+  <button type="button" id="all-off">All off</button>
+</footer>
+<script>
+const tabs = [...document.querySelectorAll(".tab")];
+const inputs = [...document.querySelectorAll(".input")];
+
+function load(key) {
+  try { return localStorage.getItem(key); } catch (err) { return null; }
+}
+function save(key, value) {
+  try { localStorage.setItem(key, value); } catch (err) {}
+}
+function forget(key) {
+  try { localStorage.removeItem(key); } catch (err) {}
+}
+
+let current = load("niles.tab");
+if (!tabs.some((tab) => tab.dataset.zone === current)) {
+  current = tabs[0] ? tabs[0].dataset.zone : "";
+}
+
+function post(path) {
+  fetch(path, { method: "POST" }).catch(() => {});
+}
+
+function paint() {
+  const chosen = load("niles.input." + current);
+  for (const tab of tabs) {
+    const on = tab.dataset.zone === current;
+    tab.classList.toggle("on", on);
+    tab.setAttribute("aria-pressed", on ? "true" : "false");
+  }
+  for (const input of inputs) {
+    const on = input.dataset.input === chosen;
+    input.classList.toggle("on", on);
+    input.setAttribute("aria-pressed", on ? "true" : "false");
+  }
+}
+
+function select(zone) {
+  current = zone;
+  save("niles.tab", zone);
+  paint();
+}
+
+for (const tab of tabs) {
+  tab.addEventListener("click", () => select(tab.dataset.zone));
+}
+for (const input of inputs) {
+  input.addEventListener("click", () => {
+    save("niles.input." + current, input.dataset.input);
+    paint();
+    post("/zones/" + encodeURIComponent(current) + "/inputs/" + encodeURIComponent(input.dataset.input));
+  });
+}
+
+function hold(button, pathFor) {
+  let timer = 0;
+  const stop = () => {
+    if (!timer) return;
+    clearInterval(timer);
+    timer = 0;
+  };
+  button.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    button.setPointerCapture(event.pointerId);
+    const path = pathFor();
+    post(path);
+    stop();
+    timer = setInterval(() => post(path), 200);
+  });
+  button.addEventListener("pointerup", stop);
+  button.addEventListener("pointercancel", stop);
+}
+
+hold(document.getElementById("vol-down"), () => "/zones/" + encodeURIComponent(current) + "/volume/down");
+hold(document.getElementById("vol-up"), () => "/zones/" + encodeURIComponent(current) + "/volume/up");
+document.getElementById("mute").addEventListener("click", () => {
+  post("/zones/" + encodeURIComponent(current) + "/mute");
+});
+document.getElementById("off").addEventListener("click", () => {
+  forget("niles.input." + current);
+  paint();
+  post("/zones/" + encodeURIComponent(current) + "/off");
+});
+document.getElementById("all-off").addEventListener("click", () => {
+  for (const tab of tabs) forget("niles.input." + tab.dataset.zone);
+  paint();
+  post("/off");
+});
+select(current);
+</script>
+</body>
+</html>
